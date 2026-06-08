@@ -28,7 +28,7 @@ const DASHBOARD_URL = "https://turundus-deb6d.web.app";
 const META_OAUTH_CALLBACK_URL = `${DASHBOARD_URL}/`;
 const TIKTOK_OAUTH_CALLBACK_URL = "https://us-central1-turundus-deb6d.cloudfunctions.net/completeTikTokOAuth";
 const YOUTUBE_OAUTH_CALLBACK_URL = "https://us-central1-turundus-deb6d.cloudfunctions.net/completeYouTubeOAuth";
-const YOUTUBE_CHANNEL_DISPLAY_NAME = "Ilukliinik NOOR";
+const YOUTUBE_CHANNEL_DISPLAY_NAME = "Ilu ei anna häbeneda!";
 const META_AUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",

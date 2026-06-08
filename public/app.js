@@ -1,7 +1,7 @@
 // Impordime vajalikud funktsioonid Firebase SDK-st otse CDN-ist
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, getDocs, query, orderBy, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 // ^^^^^ KONTROLLI KÕIKI VERSIOONE! Need peavad olema kõik sama versiooninumbriga (nt 10.12.0)!
 
@@ -27,9 +27,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Hankime HTML-elementide viited (autentimiseks)
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const loginButton = document.getElementById('login-button');
 const googleLoginButton = document.getElementById('google-login-button');
 const logoutButton = document.getElementById('logout-button');
 const userStatus = document.getElementById('user-status');
@@ -2043,33 +2040,6 @@ async function loadMetaSocialRange(startDate, endDate) {
 }
 
 
-// Funktsioon kasutaja sisselogimiseks
-async function loginUser() {
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    authError.textContent = ''; // Puhasta veateade
-
-    if (!email || !password) {
-        authError.textContent = 'Palun sisesta nii e-post kui ka parool.';
-        return;
-    }
-
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-        console.log('Kasutaja edukalt sisse logitud!');
-        // UI uuendatakse onAuthStateChanged poolt
-    } catch (error) {
-        console.error('Sisselogimisviga:', error.message);
-        let errorMessage = 'Sisselogimine ebaõnnestus. Kontrolli oma e-posti ja parooli.';
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') { // Parandatud: 'wrong-password' oli pooleli
-            errorMessage = 'Vale e-post või parool.';
-        } else if (error.code === 'auth/invalid-email') {
-            errorMessage = 'Vigane e-posti formaat.';
-        }
-        authError.textContent = errorMessage;
-    }
-}
-
 // Funktsioon kasutaja väljalogimiseks
 async function logoutUser() {
     try {
@@ -2331,10 +2301,7 @@ onAuthStateChanged(auth, (user) => {
         userStatus.textContent = `Sisse logitud kui: ${user.email}`; // See on debugimiseks
         userEmailDisplay.textContent = user.email; // Kuvame e-posti armatuurlaual
 
-        loginButton.style.display = 'none';
         googleLoginButton.style.display = 'none';
-        emailInput.style.display = 'none';
-        passwordInput.style.display = 'none';
         authError.textContent = '';
         authContainer.style.display = 'none'; // Peida sisselogimisvorm
 
@@ -2351,10 +2318,7 @@ onAuthStateChanged(auth, (user) => {
         userStatus.textContent = 'Pole sisse logitud.'; // See on debugimiseks
         userEmailDisplay.textContent = 'külaline';
 
-        loginButton.style.display = 'inline-block';
         googleLoginButton.style.display = 'inline-block';
-        emailInput.style.display = 'block';
-        passwordInput.style.display = 'block';
         authError.textContent = '';
         authContainer.style.display = 'block'; // Näita sisselogimisvorm
 
@@ -2364,7 +2328,6 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // Lisame nupudele sündmuste kuulajad
-loginButton.addEventListener('click', loginUser);
 googleLoginButton.addEventListener('click', loginWithGoogle); // Google'i sisselogimise kuulaja
 logoutButton.addEventListener('click', logoutUser);
 

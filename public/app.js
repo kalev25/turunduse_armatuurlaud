@@ -43,6 +43,7 @@ const GOOGLE_BUSINESS_PROFILE_RANGE_URL = 'https://us-central1-turundus-deb6d.cl
 const BLOG_INSIGHTS_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/fetchBlogInsights';
 const META_SOCIAL_RANGE_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/fetchMetaSocialRange';
 const SMAILY_RANGE_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/fetchSmailyRange';
+const MEDIA_PERFORMANCE_RANGE_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/fetchMediaPerformanceRange';
 const ASSIGN_INSTAGRAM_STORY_OWNER_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/assignInstagramStoryOwner';
 const META_AUTH_START_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/startMetaOAuth';
 const META_AUTH_STATUS_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/getMetaAuthStatus';
@@ -78,6 +79,10 @@ let latestSmailyCampaignClicksTimeline = null;
 let latestSmailyNewSubscribersTimeline = null;
 let smailyCampaignsExpanded = false;
 let smailyNewSubscribersExpanded = false;
+let latestMediaPerformance = null;
+let youtubeVideosExpanded = false;
+let spotifyTracksExpanded = false;
+let selectedMediaChartPlatform = 'youtube';
 const STORY_OWNER_SENTINEL = '__custom__';
 const DEFAULT_STORY_OWNER_OPTIONS = ['Määramata'];
 // UUS: Kuupäevavahemiku valijad ja nupp
@@ -181,6 +186,25 @@ const metaAdsChartAxis = document.getElementById('meta-ads-chart-axis');
 const metaAdsChartTooltip = document.getElementById('meta-ads-chart-tooltip');
 const metaAdsChartSubtitle = document.getElementById('meta-ads-chart-subtitle');
 const metaAdsChartEmpty = document.getElementById('meta-ads-chart-empty');
+
+const youtubeTopToggle = document.getElementById('youtube-top-toggle');
+const youtubeTopTitle = document.getElementById('youtube-top-title');
+const youtubeTopViews = document.getElementById('youtube-top-views');
+const youtubeTopArrow = document.getElementById('youtube-top-arrow');
+const youtubeVideosList = document.getElementById('youtube-videos-list');
+const spotifyTopToggle = document.getElementById('spotify-top-toggle');
+const spotifyTopTitle = document.getElementById('spotify-top-title');
+const spotifyTopListens = document.getElementById('spotify-top-listens');
+const spotifyTopArrow = document.getElementById('spotify-top-arrow');
+const spotifyTracksList = document.getElementById('spotify-tracks-list');
+const mediaChartTitle = document.getElementById('media-chart-title');
+const mediaChartYoutubeToggle = document.getElementById('media-chart-youtube-toggle');
+const mediaChartSpotifyToggle = document.getElementById('media-chart-spotify-toggle');
+const mediaPerformanceChart = document.getElementById('media-performance-chart');
+const mediaPerformanceChartAxis = document.getElementById('media-performance-chart-axis');
+const mediaPerformanceChartTooltip = document.getElementById('media-performance-chart-tooltip');
+const mediaPerformanceChartSubtitle = document.getElementById('media-chart-subtitle');
+const mediaPerformanceChartEmpty = document.getElementById('media-performance-chart-empty');
 
 // Smaily
 const smailyTitleCount = document.getElementById('smaily-title-count');
@@ -554,6 +578,10 @@ function clearMainMetricsWithFallback(fallbackText = 'N/A') {
         metaInstagramBoostSpend,
         metaLinkClicksTotal,
         metaTotalAdSpend,
+        youtubeTopTitle,
+        youtubeTopViews,
+        spotifyTopTitle,
+        spotifyTopListens,
         smailyNewSubscribers,
         smailyCampaignCount,
         googleReviewsPeriodNew,
@@ -1202,6 +1230,176 @@ function renderSmailyNewSubscribersChart() {
             day: 'Valitud perioodi liitumised päevade lõikes'
         }
     });
+}
+
+function formatInteger(value) {
+    return new Intl.NumberFormat('et-EE', { maximumFractionDigits: 0 }).format(Number(value) || 0);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function renderMediaRankingList(container, items, metricKey, metricLabel, emptyText) {
+    if (!container) {
+        return;
+    }
+
+    if (!items || items.length === 0) {
+        container.innerHTML = `<div class="insight-list-item"><span>${emptyText}</span><span class="insight-count">0</span></div>`;
+        return;
+    }
+
+    container.innerHTML = items.map((item, index) => {
+        const title = escapeHtml(item.title || item.name || 'Nimetu');
+        const metricValue = item[metricKey] ?? item.value ?? 0;
+        const titleHtml = item.url ?
+            `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${index + 1}. ${title}</a>` :
+            `<strong>${index + 1}. ${title}</strong>`;
+        return `<div class="insight-list-item">
+            <div>${titleHtml}<span>${formatInteger(metricValue)} ${metricLabel}</span></div>
+            <span class="insight-count">${formatInteger(metricValue)}</span>
+        </div>`;
+    }).join('');
+}
+
+function renderMediaPerformanceChart() {
+    const platformPayload = latestMediaPerformance?.[selectedMediaChartPlatform];
+    const isSpotify = selectedMediaChartPlatform === 'spotify';
+
+    if (mediaChartTitle) {
+        mediaChartTitle.textContent = isSpotify ? 'Spotify kuulamised ajas' : 'YouTube vaatamised ajas';
+    }
+    if (mediaChartYoutubeToggle) {
+        mediaChartYoutubeToggle.classList.toggle('is-active', !isSpotify);
+    }
+    if (mediaChartSpotifyToggle) {
+        mediaChartSpotifyToggle.classList.toggle('is-active', isSpotify);
+    }
+
+    renderTimelineChart({
+        timeline: platformPayload?.timeline,
+        svg: mediaPerformanceChart,
+        axis: mediaPerformanceChartAxis,
+        tooltip: mediaPerformanceChartTooltip,
+        empty: mediaPerformanceChartEmpty,
+        subtitle: mediaPerformanceChartSubtitle,
+        valueKey: 'value',
+        valueLabel: isSpotify ? 'kuulamist' : 'vaatamist',
+        subtitleTexts: {
+            day: isSpotify ? 'Valitud perioodi kuulamised päevade lõikes' : 'Valitud perioodi vaatamised päevade lõikes'
+        }
+    });
+}
+
+function renderMediaPerformance() {
+    const youtubeItems = latestMediaPerformance?.youtube?.videos || [];
+    const spotifyItems = latestMediaPerformance?.spotify?.tracks || [];
+    const topYoutubeVideo = youtubeItems[0];
+    const topSpotifyTrack = spotifyItems[0];
+
+    if (youtubeTopTitle) {
+        youtubeTopTitle.textContent = topYoutubeVideo?.title || 'Andmeid pole';
+    }
+    if (youtubeTopViews) {
+        youtubeTopViews.textContent = topYoutubeVideo ? ` (${formatInteger(topYoutubeVideo.views || 0)})` : '';
+    }
+    if (spotifyTopTitle) {
+        spotifyTopTitle.textContent = topSpotifyTrack?.title || topSpotifyTrack?.name || 'Andmeid pole';
+    }
+    if (spotifyTopListens) {
+        spotifyTopListens.textContent = topSpotifyTrack ? ` (${formatInteger(topSpotifyTrack.listens || 0)})` : '';
+    }
+
+    renderMediaRankingList(youtubeVideosList, youtubeItems, 'views', 'vaatamist', 'Valitud perioodi YouTube videosid ei leitud.');
+    renderMediaRankingList(spotifyTracksList, spotifyItems, 'listens', 'kuulamist', 'Valitud perioodi Spotify lugusid ei leitud.');
+
+    if (youtubeVideosList) {
+        youtubeVideosList.hidden = !youtubeVideosExpanded;
+    }
+    if (spotifyTracksList) {
+        spotifyTracksList.hidden = !spotifyTracksExpanded;
+    }
+    if (youtubeTopToggle) {
+        youtubeTopToggle.setAttribute('aria-expanded', youtubeVideosExpanded ? 'true' : 'false');
+    }
+    if (spotifyTopToggle) {
+        spotifyTopToggle.setAttribute('aria-expanded', spotifyTracksExpanded ? 'true' : 'false');
+    }
+    if (youtubeTopArrow) {
+        youtubeTopArrow.textContent = youtubeVideosExpanded ? '↓' : '→';
+    }
+    if (spotifyTopArrow) {
+        spotifyTopArrow.textContent = spotifyTracksExpanded ? '↓' : '→';
+    }
+
+    renderMediaPerformanceChart();
+}
+
+function setMediaPerformanceLoadingState() {
+    latestMediaPerformance = null;
+    youtubeVideosExpanded = false;
+    spotifyTracksExpanded = false;
+    if (youtubeTopTitle) {
+        youtubeTopTitle.textContent = 'Laeb andmeid...';
+    }
+    if (youtubeTopViews) {
+        youtubeTopViews.textContent = '';
+    }
+    if (spotifyTopTitle) {
+        spotifyTopTitle.textContent = 'Laeb andmeid...';
+    }
+    if (spotifyTopListens) {
+        spotifyTopListens.textContent = '';
+    }
+    renderMediaRankingList(youtubeVideosList, [], 'views', 'vaatamist', 'Laeb YouTube videosid...');
+    renderMediaRankingList(spotifyTracksList, [], 'listens', 'kuulamist', 'Laeb Spotify lugusid...');
+    setChartEmptyState(
+        {
+            svg: mediaPerformanceChart,
+            axis: mediaPerformanceChartAxis,
+            tooltip: mediaPerformanceChartTooltip,
+            empty: mediaPerformanceChartEmpty
+        },
+        'Laeb YouTube ja Spotify graafikut...'
+    );
+}
+
+async function loadMediaPerformanceRange(startDate, endDate) {
+    setMediaPerformanceLoadingState();
+
+    try {
+        const response = await fetch(`${MEDIA_PERFORMANCE_RANGE_URL}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`);
+        const payload = await response.json();
+
+        if (!response.ok) {
+            throw new Error(payload.error || 'YouTube ja Spotify andmete laadimine ebaõnnestus.');
+        }
+
+        latestMediaPerformance = payload;
+        renderMediaPerformance();
+    } catch (error) {
+        console.error('YouTube ja Spotify andmete laadimine ebaõnnestus:', error);
+        latestMediaPerformance = {
+            youtube: { videos: [], timeline: { granularity: 'day', points: [] } },
+            spotify: { tracks: [], timeline: { granularity: 'day', points: [] } }
+        };
+        renderMediaPerformance();
+        setChartEmptyState(
+            {
+                svg: mediaPerformanceChart,
+                axis: mediaPerformanceChartAxis,
+                tooltip: mediaPerformanceChartTooltip,
+                empty: mediaPerformanceChartEmpty
+            },
+            'YouTube ja Spotify andmeühendus pole veel seadistatud.'
+        );
+    }
 }
 
 function setSmailyLoadingState() {
@@ -2098,6 +2296,7 @@ async function fetchAndDisplayMarketingData(selectedFilter = {}) {
                     loadBlogInsights(selectedFilter.startDate, selectedFilter.endDate),
                     loadMetaSocialRange(selectedFilter.startDate, selectedFilter.endDate),
                     loadSmailyRange(selectedFilter.startDate, selectedFilter.endDate),
+                    loadMediaPerformanceRange(selectedFilter.startDate, selectedFilter.endDate),
                     loadGoogleBusinessProfileRange(selectedFilter.startDate, selectedFilter.endDate)
                 ]);
                 return;
@@ -2207,6 +2406,7 @@ async function fetchAndDisplayMarketingData(selectedFilter = {}) {
                 loadBlogInsights(selectedFilter.startDate, selectedFilter.endDate),
                 loadMetaSocialRange(selectedFilter.startDate, selectedFilter.endDate),
                 loadSmailyRange(selectedFilter.startDate, selectedFilter.endDate),
+                loadMediaPerformanceRange(selectedFilter.startDate, selectedFilter.endDate),
                 loadGoogleBusinessProfileRange(selectedFilter.startDate, selectedFilter.endDate)
             ]);
         } else {
@@ -2363,6 +2563,34 @@ if (smailyCampaignsToggle) {
     smailyCampaignsToggle.addEventListener('click', () => {
         smailyCampaignsExpanded = !smailyCampaignsExpanded;
         renderSmailyCampaigns();
+    });
+}
+
+if (youtubeTopToggle) {
+    youtubeTopToggle.addEventListener('click', () => {
+        youtubeVideosExpanded = !youtubeVideosExpanded;
+        renderMediaPerformance();
+    });
+}
+
+if (spotifyTopToggle) {
+    spotifyTopToggle.addEventListener('click', () => {
+        spotifyTracksExpanded = !spotifyTracksExpanded;
+        renderMediaPerformance();
+    });
+}
+
+if (mediaChartYoutubeToggle) {
+    mediaChartYoutubeToggle.addEventListener('click', () => {
+        selectedMediaChartPlatform = 'youtube';
+        renderMediaPerformanceChart();
+    });
+}
+
+if (mediaChartSpotifyToggle) {
+    mediaChartSpotifyToggle.addEventListener('click', () => {
+        selectedMediaChartPlatform = 'spotify';
+        renderMediaPerformanceChart();
     });
 }
 

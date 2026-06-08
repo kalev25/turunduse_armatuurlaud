@@ -565,6 +565,131 @@ function buildGoogleReviewsTimeline(reviews, startDate, endDate) {
 }
 
 /**
+ * Builds an empty daily timeline for a selected range.
+ * @param {string} startDate
+ * @param {string} endDate
+ * @return {{granularity: string, points: Array<{label: string, value: number}>}}
+ */
+function buildEmptyDailyValueTimeline(startDate, endDate) {
+  const points = [];
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+
+  while (cursor <= end) {
+    points.push({
+      label: formatIsoDate(cursor),
+      value: 0,
+    });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return {
+    granularity: "day",
+    points,
+  };
+}
+
+/**
+ * Creates a stable key for media item aggregation.
+ * @param {object} item
+ * @param {string} fallbackPrefix
+ * @return {string}
+ */
+function getMediaItemKey(item, fallbackPrefix) {
+  return item.id || item.videoId || item.trackId || item.url || `${fallbackPrefix}:${item.title || item.name || "unknown"}`;
+}
+
+/**
+ * Adds one media item to an aggregate map.
+ * @param {Map<string, object>} aggregateMap
+ * @param {object} item
+ * @param {string} metricKey
+ * @param {string} fallbackPrefix
+ */
+function addMediaItemMetric(aggregateMap, item, metricKey, fallbackPrefix) {
+  const key = getMediaItemKey(item, fallbackPrefix);
+  const rawMetricValue = item[metricKey] != null ? item[metricKey] : item.value;
+  const currentItem = aggregateMap.get(key) || {
+    id: item.id || item.videoId || item.trackId || key,
+    title: item.title || item.name || "Nimetu",
+    url: item.url || "",
+    [metricKey]: 0,
+  };
+
+  currentItem[metricKey] += Number(rawMetricValue || 0) || 0;
+  if (!currentItem.url && item.url) {
+    currentItem.url = item.url;
+  }
+  aggregateMap.set(key, currentItem);
+}
+
+/**
+ * Builds YouTube and Spotify performance payload from Firestore docs.
+ * @param {Array<object>} docs
+ * @param {string} startDate
+ * @param {string} endDate
+ * @return {object}
+ */
+function buildMediaPerformancePayload(docs, startDate, endDate) {
+  const youtubeItems = new Map();
+  const spotifyItems = new Map();
+  const youtubeTimelineByDate = new Map();
+  const spotifyTimelineByDate = new Map();
+
+  buildEmptyDailyValueTimeline(startDate, endDate).points.forEach((point) => {
+    youtubeTimelineByDate.set(point.label, 0);
+    spotifyTimelineByDate.set(point.label, 0);
+  });
+
+  docs.forEach((doc) => {
+    const date = doc.date;
+    const youtube = doc.youtube || {};
+    const spotify = doc.spotify || {};
+    const youtubeVideos = youtube.videos || [];
+    const spotifyTracks = spotify.tracks || [];
+    const youtubeTotal = youtube.totalViews != null ?
+      youtube.totalViews :
+      youtubeVideos.reduce((sum, item) => {
+        const value = item.views != null ? item.views : item.value;
+        return sum + (Number(value || 0) || 0);
+      }, 0);
+    const spotifyTotal = spotify.totalListens != null ?
+      spotify.totalListens :
+      spotifyTracks.reduce((sum, item) => {
+        const value = item.listens != null ? item.listens : item.value;
+        return sum + (Number(value || 0) || 0);
+      }, 0);
+
+    youtubeTimelineByDate.set(date, (youtubeTimelineByDate.get(date) || 0) + youtubeTotal);
+    spotifyTimelineByDate.set(date, (spotifyTimelineByDate.get(date) || 0) + spotifyTotal);
+
+    youtubeVideos.forEach((item) => addMediaItemMetric(youtubeItems, item, "views", "youtube"));
+    spotifyTracks.forEach((item) => addMediaItemMetric(spotifyItems, item, "listens", "spotify"));
+  });
+
+  const sortByMetric = (metricKey) => (a, b) => (b[metricKey] || 0) - (a[metricKey] || 0);
+
+  return {
+    startDate,
+    endDate,
+    youtube: {
+      videos: Array.from(youtubeItems.values()).sort(sortByMetric("views")),
+      timeline: {
+        granularity: "day",
+        points: Array.from(youtubeTimelineByDate.entries()).map(([label, value]) => ({ label, value })),
+      },
+    },
+    spotify: {
+      tracks: Array.from(spotifyItems.values()).sort(sortByMetric("listens")),
+      timeline: {
+        granularity: "day",
+        points: Array.from(spotifyTimelineByDate.entries()).map(([label, value]) => ({ label, value })),
+      },
+    },
+  };
+}
+
+/**
  * Clamps a requested metric range to the last safe Meta metric day.
  * @param {string} startDate
  * @param {string} endDate
@@ -3075,6 +3200,45 @@ exports.fetchSmailyRange = onRequest(
       });
     } catch (error) {
       console.error("Error fetching Smaily range data:", error);
+      return res.status(500).json({
+        error: error.message,
+      });
+    }
+  },
+);
+
+exports.fetchMediaPerformanceRange = onRequest(
+  {
+    cors: true,
+    serviceAccount: FUNCTION_SERVICE_ACCOUNT,
+  },
+  async (req, res) => {
+    try {
+      const startDate = req.query.startDate;
+      const endDate = req.query.endDate;
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          error: "startDate and endDate query parameters are required.",
+        });
+      }
+
+      if (startDate > endDate) {
+        return res.status(400).json({
+          error: "startDate cannot be later than endDate.",
+        });
+      }
+
+      const snapshot = await db.collection("mediaPerformanceDaily")
+        .where("date", ">=", startDate)
+        .where("date", "<=", endDate)
+        .orderBy("date", "asc")
+        .get();
+      const docs = snapshot.docs.map((doc) => doc.data());
+
+      return res.status(200).json(buildMediaPerformancePayload(docs, startDate, endDate));
+    } catch (error) {
+      console.error("Error fetching media performance range data:", error);
       return res.status(500).json({
         error: error.message,
       });

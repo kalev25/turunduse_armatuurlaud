@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minu Firebase Armatuurlaud</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-top: #eef6ef;
+            --bg-bottom: #f7f4ea;
+            --surface: rgba(255, 255, 255, 0.88);
+            --surface-strong: #ffffff;
+            --border: rgba(34, 48, 36, 0.1);
+            --text-main: #153127;
+            --text-soft: #577064;
+            --brand: #1f7a5b;
+            --brand-dark: #15533e;
+            --brand-soft: rgba(31, 122, 91, 0.12);
+            --accent: #d7a54a;
+            --shadow-lg: 0 24px 60px rgba(26, 50, 36, 0.14);
+            --shadow-md: 0 14px 32px rgba(24, 45, 33, 0.08);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+        }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+            color: var(--text-main);
+            font-family: "Source Sans 3", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(31, 122, 91, 0.16), transparent 32%),
+                radial-gradient(circle at top right, rgba(215, 165, 74, 0.18), transparent 26%),
+                linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.18) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.18) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.28), rgba(0,0,0,0));
+        }
+        .page-shell {
+            width: 100%;
+            max-width: 1240px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        h1 {
+            margin: 0;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: clamp(2.3rem, 4vw, 4.2rem);
+            line-height: 0.98;
+            letter-spacing: -0.04em;
+            color: var(--text-main);
+        }
+        #auth-container {
+            max-width: 460px;
+            margin: 0 auto 24px;
+            background: var(--surface);
+            backdrop-filter: blur(18px);
+            padding: 28px;
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: var(--shadow-lg);
+            text-align: left;
+        }
+        #auth-container h2 {
+            margin: 0 0 16px;
+            font-family: "Space Grotesk", sans-serif;
+        }
+        #auth-container input {
+            width: 100%;
+            padding: 13px 14px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(21, 49, 39, 0.12);
+            border-radius: 12px;
+            box-sizing: border-box;
+            background: rgba(255,255,255,0.92);
+            font: inherit;
+        }
+        #auth-container button {
+            background-color: var(--brand);
+            color: white;
+            padding: 11px 16px;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            margin: 5px;
+            box-shadow: 0 12px 24px rgba(31, 122, 91, 0.22);
+        }
+        #auth-container button:hover {
+            background-color: var(--brand-dark);
+        }
+        #user-status {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        #auth-error {
+            color: #b42318;
+            margin-top: 10px;
+        }
+        #dashboard-content {
+            display: none;
+            width: 100%;
+            text-align: left;
+        }
+        .hero {
+            display: grid;
+            grid-template-columns: 1.3fr 0.9fr;
+            gap: 22px;
+            margin-bottom: 24px;
+            align-items: stretch;
+        }
+        .hero-panel,
+        .hero-side {
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .hero-panel {
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.95), rgba(250,255,251,0.82)),
+                var(--surface);
+            border: 1px solid rgba(255,255,255,0.78);
+            padding: 30px;
+            position: relative;
+        }
+        .hero-panel::after {
+            content: "";
+            position: absolute;
+            right: -30px;
+            top: -30px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(31, 122, 91, 0.16), transparent 68%);
+        }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--brand-soft);
+            color: var(--brand-dark);
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+        .hero-copy {
+            max-width: 620px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-copy p {
+            margin: 14px 0 0;
+            font-size: 1.12rem;
+            line-height: 1.55;
+            color: var(--text-soft);
+        }
+        .hero-side {
+            background:
+                linear-gradient(180deg, rgba(21, 49, 39, 0.96), rgba(17, 43, 33, 0.94)),
+                #123328;
+            color: #eff8f3;
+            padding: 26px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .hero-side::before {
+            content: "";
+            position: absolute;
+            inset: auto -40px -50px auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(215, 165, 74, 0.26), transparent 65%);
+        }
+        .hero-side h2 {
+            margin: 0 0 10px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.55rem;
+            letter-spacing: -0.02em;
+        }
+        .hero-side p {
+            margin: 0;
+            color: rgba(239, 248, 243, 0.78);
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+        }
+        .user-chip {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: #fff6e8;
+            font-weight: 700;
+            margin-top: 18px;
+            word-break: break-word;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-actions {
+            margin-top: 18px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.16);
+            color: #f7fbf8;
+            font-weight: 700;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .hero-action-button:hover {
+            background: rgba(255,255,255,0.18);
+            transform: translateY(-1px);
+        }
+        .hero-action-status {
+            margin: 10px 0 0;
+            font-size: 0.92rem;
+            color: rgba(239, 248, 243, 0.76);
+            line-height: 1.45;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-action-status a {
+            color: #fff4d0;
+            font-weight: 700;
+            text-decoration: underline;
+        }
+        .hero-action-link {
+            display: inline-flex;
+            margin-top: 10px;
+            color: #fff4d0;
+            font-size: 0.92rem;
+            font-weight: 700;
+            text-decoration: underline;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-help-card {
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            position: relative;
+            z-index: 1;
+        }
+        .hero-help-card h3 {
+            margin: 0 0 8px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 0.98rem;
+            color: #fff6e8;
+        }
+        .hero-help-card ol {
+            margin: 0;
+            padding-left: 18px;
+            color: rgba(239, 248, 243, 0.82);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .hero-help-card li + li {
+            margin-top: 4px;
+        }
+        .hero-help-card a {
+            color: #fff4d0;
+            font-weight: 700;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 20px;
+        }
+        .data-card {
+            grid-column: span 4;
+            background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.84));
+            padding: 22px;
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(255,255,255,0.72);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(12px);
+            box-sizing: border-box;
+            position: relative;
+            overflow: visible;
+        }
+        .data-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--brand), var(--accent));
+        }
+        .data-card h3 {
+            color: var(--text-main);
+            margin-top: 0;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(21, 49, 39, 0.08);
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.18rem;
+            letter-spacing: -0.02em;
+        }
+        .data-card p {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: baseline;
+            margin: 0 0 11px;
+            padding-bottom: 11px;
+            border-bottom: 1px dashed rgba(21, 49, 39, 0.08);
+            line-height: 1.4;
+        }
+        .data-card p:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .data-card p strong {
+            display: inline-block;
+            width: auto;
+            color: var(--text-soft);
+            font-weight: 600;
+            flex: 1;
+        }
+        .data-card span {
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: right;
+        }
+        .data-card.wide-card {
+            grid-column: span 8;
+        }
+        .metric-group-title {
+            margin: 18px 0 12px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-soft);
+        }
+        .metric-helper-text {
+            margin: -2px 0 12px;
+            font-size: 0.9rem;
+            color: var(--text-soft);
+        }
+        .metric-row.subtle {
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(21, 49, 39, 0.04);
+            border-bottom: none;
+            margin-bottom: 8px;
+        }
+        .metric-row.subtle strong {
+            font-size: 0.96rem;
+        }
+        .metric-row.subtle span {
+            font-size: 0.96rem;
+        }
+        .metric-note {
+            margin: 0 0 14px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-soft);
+        }
+        .metric-note:last-child {
+            margin-bottom: 0;
+        }
+        .integration-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 14px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(215, 165, 74, 0.16);
+            color: #7d5a16;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .integration-pill::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #d7a54a;
+            box-shadow: 0 0 0 4px rgba(215, 165, 74, 0.16);
+        }
+        .compact-card p {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            font-size: 0.96rem;
+        }
+        .compact-card p strong,
+        .compact-card span {
+            font-size: 0.95rem;
+        }
+        .ga-chart-panel {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(21, 49, 39, 0.08);
+        }
+        .ga-chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .ga-chart-header h4 {
+            margin: 0;
+            font-size: 0.98rem;
+            color: var(--text-main);
+        }
+        .ga-chart-subtitle {
+            margin: 0;
+            font-size: 0.86rem;
+            color: var(--text-soft);
+        }
+        .ga-chart-shell {
+            position: relative;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(31, 122, 91, 0.06), rgba(31, 122, 91, 0.02));
+            padding: 10px 10px 0;
+            overflow: visible;
+        }
+        .ga-chart-svg {
+            width: 100%;
+            height: 220px;
+            display: block;
+        }
+        .ga-chart-axis {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 4px 10px;
+            color: var(--text-soft);
+            font-size: 0.8rem;
+        }
+        .ga-chart-axis span {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+            color: var(--text-soft);
+            font-weight: 600;
+        }
+        .ga-chart-tooltip {
+            position: absolute;
+            display: none;
+            min-width: 120px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(18, 51, 40, 0.94);
+            color: #f3fbf6;
+            box-shadow: 0 16px 28px rgba(16, 37, 29, 0.26);
+            pointer-events: none;
+            transform: translate(-50%, calc(-100% - 14px));
+            z-index: 50;
+            white-space: nowrap;
+        }
+        .ga-chart-tooltip strong,
+        .ga-chart-tooltip span {
+            display: block;
+            color: inherit;
+            text-align: left;
+        }
+        .ga-chart-empty {
+            padding: 24px 12px;
+            text-align: center;
+            color: var(--text-soft);
+            font-size: 0.92rem;
+        }
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        .insight-tile {
+            padding: 13px 14px;
+            border-radius: 14px;
+            background: rgba(21, 49, 39, 0.04);
+            border: 1px solid rgba(21, 49, 39, 0.06);
+        }
+        .insight-tile strong,
+        .insight-tile span,
+        .insight-tile a {
+            display: block;
+            text-align: left;
+        }
+        .insight-kicker {
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-soft);
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+        .insight-value {
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.28rem;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        .insight-meta,
+        .insight-link {
+            font-size: 0.86rem;
+            color: var(--text-soft);
+            line-height: 1.35;
+        }
+        .insight-link {
+            color: var(--brand-dark);
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .insight-section {
+            margin-top: 16px;
+        }
+        .insight-section h4 {
+            margin: 0 0 10px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 0.92rem;
+        }
+        .insight-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .insight-section-header h4 {
+            margin: 0;
+        }
+        .toggle-button {
+            border: none;
+            background: transparent;
+            color: var(--brand-dark);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            padding: 0;
+        }
+        .insight-list {
+            display: grid;
+            gap: 8px;
+        }
+        .insight-list-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: start;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(21, 49, 39, 0.04);
+        }
+        .insight-list-item a,
+        .insight-list-item strong,
+        .insight-list-item span {
+            display: block;
+            text-align: left;
+        }
+        .insight-list-item strong {
+            color: var(--text-main);
+            font-size: 0.9rem;
+            line-height: 1.28;
+        }
+        .insight-list-item a {
+            color: var(--brand-dark);
+            font-weight: 700;
+            line-height: 1.28;
+            text-decoration: none;
+            word-break: break-word;
+            font-size: 0.88rem;
+        }
+        .insight-list-item span {
+            color: var(--text-soft);
+            font-size: 0.8rem;
+        }
+        .insight-list-item .insight-count {
+            color: var(--text-main);
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.86rem;
+        }
+        .insight-list-item .insight-meta {
+            margin-top: 3px;
+        }
+        .insight-list-item .insight-owner-select {
+            width: 100%;
+            max-width: 220px;
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(21, 49, 39, 0.12);
+            background: rgba(255,255,255,0.92);
+            color: var(--text-main);
+            font: inherit;
+        }
+        .metric-toggle-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: baseline;
+            margin: 0 0 11px;
+            padding: 0 0 11px;
+            border: none;
+            border-bottom: 1px dashed rgba(21, 49, 39, 0.08);
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+            text-align: left;
+        }
+        .metric-toggle-row strong {
+            color: var(--text-soft);
+            font-weight: 600;
+            flex: 1;
+        }
+        .metric-toggle-row span {
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: right;
+        }
+        .metric-toggle-row .metric-toggle-arrow {
+            margin-left: 8px;
+            color: var(--brand-dark);
+        }
+        .collapsible-list[hidden] {
+            display: none;
+        }
+        .blog-status {
+            margin-top: 10px;
+            font-size: 0.84rem;
+            color: var(--text-soft);
+        }
+        .filter-panel {
+            background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(253,255,252,0.82));
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: var(--shadow-lg);
+            padding: 24px;
+            backdrop-filter: blur(18px);
+        }
+        .sticky-filter-shell {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            margin-bottom: 20px;
+        }
+        .filter-panel-compact {
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 18px 36px rgba(24, 45, 33, 0.1);
+        }
+        .filter-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 16px;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+        .filter-summary::-webkit-details-marker {
+            display: none;
+        }
+        .filter-summary-copy {
+            min-width: 0;
+        }
+        .filter-summary-kicker {
+            display: block;
+            margin-bottom: 2px;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-soft);
+            font-weight: 700;
+        }
+        .filter-summary-value {
+            display: block;
+            color: var(--text-main);
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 0.96rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .filter-summary-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .filter-summary-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: rgba(31, 122, 91, 0.08);
+            color: var(--brand-dark);
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .filter-summary-arrow {
+            flex-shrink: 0;
+            color: var(--brand-dark);
+            font-size: 1rem;
+            font-weight: 800;
+            transition: transform 0.2s ease;
+        }
+        .filter-panel-compact[open] .filter-summary-arrow {
+            transform: rotate(180deg);
+        }
+        .filter-panel-content {
+            padding: 0 16px 16px;
+            border-top: 1px solid rgba(21, 49, 39, 0.08);
+        }
+        .filter-panel h3 {
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--text-main);
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 1.35rem;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .filter-row:last-child {
+            margin-bottom: 0;
+        }
+        .filter-row label {
+            font-weight: bold;
+            color: var(--text-soft);
+        }
+        .filter-row input,
+        .filter-row select,
+        .filter-row button {
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(21, 49, 39, 0.12);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .filter-row button {
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-weight: 700;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+        .filter-row button:hover {
+            transform: translateY(-1px);
+        }
+        #apply-date-range {
+            background-color: var(--brand);
+            color: white;
+            box-shadow: 0 10px 24px rgba(31, 122, 91, 0.22);
+        }
+        #apply-date-range:hover {
+            background-color: var(--brand-dark);
+        }
+        .preset-button {
+            background-color: #f4f7f3;
+            color: var(--brand-dark);
+            border-color: rgba(31, 122, 91, 0.12);
+        }
+        .preset-button:hover {
+            background-color: #e8f2ec;
+        }
+        .mobile-preset-row {
+            display: none;
+        }
+        .status-banner {
+            display: none;
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-weight: 600;
+        }
+        .status-banner.is-visible {
+            display: block;
+        }
+        .status-banner.is-loading {
+            background: rgba(31, 122, 91, 0.1);
+            color: var(--brand-dark);
+        }
+        .status-banner.is-error {
+            background: rgba(180, 35, 24, 0.12);
+            color: #8f1f13;
+        }
+        .dashboard-toolbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .dashboard-toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        .meta-token-details {
+            width: min(420px, 100%);
+        }
+        .meta-token-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            list-style: none;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.82);
+            color: var(--text-main);
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            user-select: none;
+        }
+        .meta-token-summary::-webkit-details-marker {
+            display: none;
+        }
+        .meta-token-badge {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #d7a54a;
+            color: #153127;
+            font-size: 0.8rem;
+            font-weight: 800;
+        }
+        .meta-token-badge.is-visible {
+            display: inline-flex;
+        }
+        .meta-token-content {
+            margin-top: 10px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(21, 49, 39, 0.08);
+            box-shadow: var(--shadow-md);
+        }
+        .meta-token-content p {
+            margin: 0 0 10px;
+            color: var(--text-soft);
+            line-height: 1.5;
+        }
+        .meta-token-content p:last-child {
+            margin-bottom: 0;
+        }
+        .meta-token-content ol {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--text-soft);
+            line-height: 1.5;
+        }
+        .meta-token-content li + li {
+            margin-top: 4px;
+        }
+        .meta-token-content a {
+            color: var(--brand-dark);
+            font-weight: 700;
+        }
+        .platform-connect-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 4px 0 14px;
+        }
+        .platform-connect-button {
+            border: 0;
+            border-radius: 999px;
+            padding: 9px 14px;
+            background: var(--text-main);
+            color: #ffffff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(21, 49, 39, 0.16);
+        }
+        .platform-connect-button:hover {
+            background: var(--brand-dark);
+        }
+        .platform-connect-button:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+        .platform-connect-status {
+            color: var(--text-soft);
+            font-size: 0.92rem;
+            line-height: 1.35;
+        }
+        #logout-button {
+            display: none;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.8);
+            color: var(--text-main);
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+        }
+
+        @media (max-width: 1024px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .dashboard-toolbar-actions {
+                margin-left: 0;
+                justify-content: space-between;
+            }
+            .data-card {
+                grid-column: span 6;
+            }
+            .data-card.wide-card {
+                grid-column: 1 / -1;
+            }
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            .hero-panel,
+            .hero-side,
+            .filter-panel,
+            .data-card {
+                border-radius: 18px;
+            }
+            .hero-panel,
+            .hero-side,
+            .filter-panel,
+            .data-card,
+            #auth-container {
+                padding: 20px;
+            }
+            .data-card {
+                grid-column: 1 / -1;
+            }
+            .insight-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-row input,
+            .filter-row select,
+            .filter-row button {
+                width: 100%;
+            }
+            .filter-summary {
+                align-items: flex-start;
+            }
+            .filter-summary-value {
+                font-size: 0.9rem;
+            }
+            .filter-panel-content {
+                padding: 0 14px 14px;
+            }
+            .filter-summary-actions {
+                gap: 8px;
+            }
+            .filter-summary-trigger {
+                min-height: 30px;
+                padding: 0 10px;
+                font-size: 0.76rem;
+            }
+            .preset-button-row {
+                display: none;
+            }
+            .mobile-preset-row {
+                display: flex;
+            }
+            .data-card p {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .data-card span {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+    <div id="auth-container">
+        <h2>Sisselogimine</h2>
+        <input type="email" id="email" placeholder="E-post">
+        <input type="password" id="password" placeholder="Parool">
+        <button id="login-button">Logi sisse (E-post)</button>
+        <button id="google-login-button">Logi sisse (Google)</button>
+        <p id="user-status"></p>
+        <p id="auth-error"></p>
+    </div>
+
+    <div id="dashboard-content">
+        <div class="dashboard-toolbar">
+            <div class="user-chip">Sisselogitud kui: <span id="user-email-display" style="margin-left: 6px;"></span></div>
+            <div class="dashboard-toolbar-actions">
+                <details class="meta-token-details">
+                    <summary class="meta-token-summary">
+                        <span>Meta token</span>
+                        <span id="meta-token-badge" class="meta-token-badge">?</span>
+                    </summary>
+                    <div class="meta-token-content">
+                        <p id="meta-auth-status">Meta ühenduse olekut laetakse...</p>
+                        <ol>
+                            <li>Ava <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer">Meta Graph API Explorer</a> ja loo uus <code>User Token</code>.</li>
+                            <li>Vaheta see <code>long-lived</code> tokeniks ning küsi selle pealt uus <code>Page Token</code>.</li>
+                            <li>Vaheta backendis secret <code>META_PAGE_ACCESS_TOKEN</code> uue väärtuse vastu.</li>
+                        </ol>
+                    </div>
+                </details>
+                <button id="logout-button">Logi välja</button>
+            </div>
+        </div>
+        <div class="sticky-filter-shell">
+            <details id="range-picker-details" class="filter-panel filter-panel-compact">
+                <summary class="filter-summary">
+                    <div class="filter-summary-copy">
+                        <span class="filter-summary-kicker">Vahemik</span>
+                        <span id="selected-range-label" class="filter-summary-value">Laeb vahemikku...</span>
+                    </div>
+                    <div class="filter-summary-actions">
+                        <span class="filter-summary-trigger">Muuda</span>
+                        <span class="filter-summary-arrow">▾</span>
+                    </div>
+                </summary>
+                <div class="filter-panel-content">
+                    <div class="filter-row">
+                        <label for="start-date">Alates:</label>
+                        <input type="date" id="start-date">
+                        <label for="end-date">Kuni:</label>
+                        <input type="date" id="end-date">
+                        <button id="apply-date-range">Rakenda vahemik</button>
+                    </div>
+                    <div class="filter-row preset-button-row">
+                        <button class="preset-button" data-range-preset="current-week">Jooksev nädal</button>
+                        <button class="preset-button" data-range-preset="previous-week">Eelmine nädal</button>
+                        <button class="preset-button" data-range-preset="current-month">Jooksev kuu</button>
+                        <button class="preset-button" data-range-preset="previous-month">Eelmine kuu</button>
+                        <button class="preset-button" data-range-preset="current-year">Jooksev aasta</button>
+                        <button class="preset-button" data-range-preset="previous-year">Eelmine aasta</button>
+                    </div>
+                    <div class="filter-row mobile-preset-row">
+                        <label for="mobile-range-preset">Kiirvalik:</label>
+                        <select id="mobile-range-preset">
+                            <option value="">Vali vahemik</option>
+                            <option value="current-week">Jooksev nädal</option>
+                            <option value="previous-week">Eelmine nädal</option>
+                            <option value="current-month">Jooksev kuu</option>
+                            <option value="previous-month">Eelmine kuu</option>
+                            <option value="current-year">Jooksev aasta</option>
+                            <option value="previous-year">Eelmine aasta</option>
+                        </select>
+                    </div>
+                    <div id="dashboard-status" class="status-banner"></div>
+                </div>
+            </details>
+        </div>
+
+
+        <div class="dashboard-grid">
+
+            <!-- Google Analytics kast -->
+            <div id="google-analytics-card" class="data-card">
+                <h3>Google Analytics (veeb)</h3>
+                <p><strong>Sessioone kokku:</strong> <span id="google-total-visits"></span></p>
+                <p><strong>Tasulised sessioonid:</strong> <span id="google-paid-visits"></span></p>
+                <p><strong>Mitte-tasulised sessioonid:</strong> <span id="google-organic-visits"></span></p>
+                <p id="google-average-sessions" class="metric-helper-text"></p>
+                <div class="metric-group-title">Raha</div>
+                <p class="metric-row subtle"><strong>Google Ads kulu:</strong> <span id="google-ad-cost"></span></p>
+                <p class="metric-row subtle"><strong>Kulu tasulise sessiooni kohta:</strong> <span id="google-cost-per-paid-session"></span></p>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Sessioonide liikumine ajas</h4>
+                            <p id="ga-chart-subtitle" class="ga-chart-subtitle">Valitud periood päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="ga-sessions-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Sessioonide graafik"></svg>
+                        <div id="ga-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="ga-chart-axis" class="ga-chart-axis"></div>
+                    <div id="ga-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+            </div>
+
+            <div id="blog-insights-card" class="data-card wide-card">
+                <h3>Blogi</h3>
+                <div class="insight-grid">
+                    <div class="insight-tile">
+                        <span class="insight-kicker">Valitud perioodil</span>
+                        <strong id="blog-posts-created" class="insight-value">-</strong>
+                        <span class="insight-meta">uut postitust avaldatud</span>
+                    </div>
+                    <div class="insight-tile">
+                        <span class="insight-kicker">Viimane postitus</span>
+                        <a id="blog-latest-post-title" class="insight-link" href="#" target="_blank" rel="noopener noreferrer">-</a>
+                        <span id="blog-latest-post-meta" class="insight-meta">-</span>
+                    </div>
+                </div>
+                <div class="metric-group-title">Raha</div>
+                <p class="metric-row subtle"><strong>Blogide kulu:</strong> <span id="blog-content-cost"></span></p>
+                <div class="insight-section">
+                    <div class="insight-section-header">
+                        <h4 id="blog-top-posts-heading">Top 3 loetuimat postitust</h4>
+                        <button id="blog-top-posts-toggle" class="toggle-button" type="button" aria-expanded="false">→ Vaata kõiki</button>
+                    </div>
+                    <div id="blog-top-posts" class="insight-list"></div>
+                </div>
+                <div class="insight-section">
+                    <h4>Välised artiklid ja lehed, kust meie juurde tuldi</h4>
+                    <div id="blog-referrers" class="insight-list"></div>
+                </div>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Blogi lugemised ajas</h4>
+                            <p id="blog-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi lugemised päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="blog-reads-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Blogi lugemiste graafik"></svg>
+                        <div id="blog-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="blog-chart-axis" class="ga-chart-axis"></div>
+                    <div id="blog-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+                <div id="blog-status" class="blog-status"></div>
+            </div>
+
+            <!-- Facebook kast -->
+            <div id="facebook-card" class="data-card">
+                <h3>Facebook</h3>
+                <p><strong>Jälgijaid:</strong> <span id="fb-followers"></span></p>
+                <button id="fb-post-count-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Postitusi:</strong>
+                    <span><span id="fb-post-count"></span><span id="fb-post-count-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="fb-top-posts" class="insight-list collapsible-list" hidden></div>
+                <p><strong>Interaktsioone:</strong> <span id="fb-interactions"></span></p>
+                <p><strong>Reach:</strong> <span id="fb-page-visits"></span></p>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Facebooki reach ajas</h4>
+                            <p id="fb-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi reach päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="fb-reach-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Facebooki reach graafik"></svg>
+                        <div id="fb-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="fb-chart-axis" class="ga-chart-axis"></div>
+                    <div id="fb-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+            </div>
+
+            <!-- Instagram kast -->
+            <div id="instagram-card" class="data-card">
+                <h3>Instagram</h3>
+                <p><strong>Jälgijaid:</strong> <span id="insta-followers"></span></p>
+                <p id="insta-new-followers-row"><strong>Uusi jälgijaid:</strong> <span id="insta-new-followers"></span></p>
+                <button id="insta-post-count-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Sisu jagatud:</strong>
+                    <span><span id="insta-post-count"></span><span id="insta-post-count-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="insta-top-posts" class="insight-list collapsible-list" hidden></div>
+                <button id="insta-story-count-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Stoorisid:</strong>
+                    <span><span id="insta-story-count"></span><span id="insta-story-count-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="insta-stories-list" class="insight-list collapsible-list" hidden></div>
+                <p><strong>Interaktsioone:</strong> <span id="insta-story-views"></span></p>
+                <p><strong>Vaatamisi:</strong> <span id="insta-post-views"></span></p>
+                <p><strong>Profiili külastusi:</strong> <span id="insta-page-visits"></span></p>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Instagrami vaatamised ajas</h4>
+                            <p id="insta-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi vaatamised päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="insta-views-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Instagrami vaatamiste graafik"></svg>
+                        <div id="insta-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="insta-chart-axis" class="ga-chart-axis"></div>
+                    <div id="insta-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+            </div>
+
+            <div id="meta-ads-card" class="data-card">
+                <h3>Meta reklaam</h3>
+                <p><strong>Meta kokku:</strong> <span id="meta-total-ad-spend"></span></p>
+                <button id="meta-facebook-boosts-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Facebooki boostid:</strong>
+                    <span><span id="meta-facebook-boost-spend"></span><span id="meta-facebook-boosts-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="meta-facebook-boosts-list" class="insight-list collapsible-list" hidden></div>
+                <button id="meta-instagram-boosts-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Instagrami boostid:</strong>
+                    <span><span id="meta-instagram-boost-spend"></span><span id="meta-instagram-boosts-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="meta-instagram-boosts-list" class="insight-list collapsible-list" hidden></div>
+                <button id="meta-link-clicks-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Lingile vajutanud:</strong>
+                    <span><span id="meta-link-clicks-total"></span><span id="meta-link-clicks-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="meta-link-clicks-list" class="insight-list collapsible-list" hidden></div>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Meta reklaamiklikid ajas</h4>
+                            <p id="meta-ads-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi lingiklikid päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="meta-ads-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Meta reklaamiklikkide graafik"></svg>
+                        <div id="meta-ads-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="meta-ads-chart-axis" class="ga-chart-axis"></div>
+                    <div id="meta-ads-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+                <p class="metric-note">See plokk näitab praegu ausalt seda, mida Meta Ads API sinu kontodel kindlalt tagasi annab: boostitud sisu, kulud ja reklaamist tulnud klikid.</p>
+            </div>
+
+            <!-- TikTok kast -->
+            <div id="tiktok-card" class="data-card">
+                <h3>TikTok</h3>
+                <div class="platform-connect-row">
+                    <button id="tiktok-connect-button" class="platform-connect-button" type="button">Ühenda TikTok</button>
+                    <span id="tiktok-auth-status" class="platform-connect-status">TikTok ühendus ootab seadistamist.</span>
+                </div>
+                <p><strong>Jälgijaid:</strong> <span id="tiktok-followers"></span></p>
+                <p><strong>Reklaamikulu:</strong> <span id="tiktok-ad-spend"></span>€</p>
+                <p><strong>Postitusi:</strong> <span id="tiktok-post-count"></span></p>
+                <p><strong>Postituste vaatamisi:</strong> <span id="tiktok-post-views"></span></p>
+                <p><strong>Profiili vaatamisi:</strong> <span id="tiktok-profile-views"></span></p>
+                <p><strong>Kulu 1 jälgija kohta:</strong> <span id="tiktok-cost-per-follower"></span>€</p>
+            </div>
+
+            <!-- Smaily kast -->
+            <div id="smaily-card" class="data-card compact-card">
+                <h3>Smaily (Uudiskiri) <span id="smaily-title-count"></span></h3>
+                <button id="smaily-new-subscribers-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Uusi tellijaid:</strong>
+                    <span><span id="smaily-new-subscribers"></span><span id="smaily-new-subscribers-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="smaily-new-subscribers-chart-panel" class="ga-chart-panel" hidden>
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Uudiskirja liitumised ajas</h4>
+                            <p id="smaily-new-subscribers-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi liitumised päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="smaily-new-subscribers-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Smaily uute tellijate graafik"></svg>
+                        <div id="smaily-new-subscribers-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="smaily-new-subscribers-chart-axis" class="ga-chart-axis"></div>
+                    <div id="smaily-new-subscribers-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+                <button id="smaily-campaigns-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Kampaaniaid:</strong>
+                    <span><span id="smaily-campaign-count"></span><span id="smaily-campaigns-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="smaily-campaigns-list" class="insight-list collapsible-list" hidden></div>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Uudiskirja avamised kampaaniapäeva järgi</h4>
+                            <p id="smaily-campaign-clicks-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi kampaaniaklikid päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="smaily-campaign-clicks-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Smaily kampaaniaavamiste graafik"></svg>
+                        <div id="smaily-campaign-clicks-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="smaily-campaign-clicks-chart-axis" class="ga-chart-axis"></div>
+                    <div id="smaily-campaign-clicks-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+            </div>
+
+            <div id="google-reviews-card" class="data-card compact-card">
+                <h3>Google Reviews <span id="google-reviews-title-count"></span></h3>
+                <button id="google-reviews-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Loe reviews:</strong>
+                    <span><span id="google-reviews-toggle-label">Laeb andmeid...</span><span id="google-reviews-toggle-arrow" class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="google-reviews-list" class="insight-list collapsible-list" hidden></div>
+                <p><strong>Perioodi keskmine hinne:</strong> <span id="google-reviews-period-rating">Peagi</span></p>
+                <p><strong>Perioodi uusi arvustusi:</strong> <span id="google-reviews-period-new">Peagi</span></p>
+                <div class="ga-chart-panel">
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4>Google review'd ajas</h4>
+                            <p id="google-reviews-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi arvustused päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="google-reviews-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Google reviewde graafik"></svg>
+                        <div id="google-reviews-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="google-reviews-chart-axis" class="ga-chart-axis"></div>
+                    <div id="google-reviews-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+                <p class="metric-note">See kast näitab valitud perioodi arvustusi, keskmist hinnet ja review’de liikumist ajas.</p>
+            </div>
+
+            <div id="google-business-profile-card" class="data-card compact-card">
+                <h3>Google Business Profile</h3>
+                <button id="google-business-profile-views-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Profiili vaatamised:</strong>
+                    <span><span id="google-business-profile-views">Peagi</span><span class="metric-toggle-arrow">→</span></span>
+                </button>
+                <button id="google-business-search-views-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Google Search vaatamised:</strong>
+                    <span><span id="google-business-search-views">Peagi</span><span class="metric-toggle-arrow">→</span></span>
+                </button>
+                <button id="google-business-maps-views-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Google Maps vaatamised:</strong>
+                    <span><span id="google-business-maps-views">Peagi</span><span class="metric-toggle-arrow">→</span></span>
+                </button>
+                <button id="google-business-website-clicks-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Veebilehe klikid:</strong>
+                    <span><span id="google-business-website-clicks">Peagi</span><span class="metric-toggle-arrow">→</span></span>
+                </button>
+                <button id="google-business-call-clicks-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Kõne klikid:</strong>
+                    <span><span id="google-business-call-clicks">Peagi</span><span class="metric-toggle-arrow">→</span></span>
+                </button>
+                <button id="google-business-direction-requests-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
+                    <strong>Teekonna päringud:</strong>
+                    <span><span id="google-business-direction-requests">Peagi</span><span class="metric-toggle-arrow">→</span></span>
+                </button>
+                <div id="google-business-chart-panel" class="ga-chart-panel" hidden>
+                    <div class="ga-chart-header">
+                        <div>
+                            <h4 id="google-business-chart-title">Google Business Profile ajas</h4>
+                            <p id="google-business-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi näit päevade lõikes</p>
+                        </div>
+                    </div>
+                    <div class="ga-chart-shell">
+                        <svg id="google-business-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="Google Business Profile graafik"></svg>
+                        <div id="google-business-chart-tooltip" class="ga-chart-tooltip"></div>
+                    </div>
+                    <div id="google-business-chart-axis" class="ga-chart-axis"></div>
+                    <div id="google-business-chart-empty" class="ga-chart-empty" style="display: none;">Graafik kuvatakse pärast andmete laadimist.</div>
+                </div>
+                <p class="metric-note">See plokk näitab Google Searchi ja Mapsi nähtavust ning põhilisi profiilitegevusi valitud perioodis.</p>
+            </div>
+
+        </div>
+    </div>
+    </div>
+
+    <script type="module" src="/app.js?v=20260522-tiktok-2"></script>
+</body>
+</html>

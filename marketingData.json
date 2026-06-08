@@ -1,0 +1,80 @@
+[
+  {
+    "date": "2024-03-01",
+    "google": {
+      "websiteVisitsTotal": 15000,
+      "websiteVisitsPaid": 8000,
+      "websiteVisitsOrganic": 7000,
+      "reviewsRating": 4.7,
+      "totalReviews": 150
+    },
+    "facebook": {
+      "followersEnd": 2500,
+      "adSpend": 300,
+      "storyCount": 15,
+      "postCount": 8,
+      "storyViews": 15000,
+      "postViews": 25000,
+      "pageVisits": 1200
+    },
+    "instagram": {
+      "followersEnd": 1200,
+      "adSpend": 200,
+      "storyCount": 20,
+      "postCount": 10,
+      "storyViews": 20000,
+      "postViews": 30000,
+      "pageVisits": 1000
+    },
+    "tiktok": {
+      "followersEnd": 500,
+      "adSpend": 50,
+      "postCount": 5,
+      "postViews": 10000,
+      "profileViews": 300
+    },
+    "newsletter": {
+      "subscribers": 350,
+      "emailsSent": 5
+    }
+  },
+  {
+    "date": "2024-04-01",
+    "google": {
+      "websiteVisitsTotal": 16500,
+      "websiteVisitsPaid": 9000,
+      "websiteVisitsOrganic": 7500,
+      "reviewsRating": 4.8,
+      "totalReviews": 165
+    },
+    "facebook": {
+      "followersEnd": 2600,
+      "adSpend": 320,
+      "storyCount": 18,
+      "postCount": 9,
+      "storyViews": 16000,
+      "postViews": 28000,
+      "pageVisits": 1300
+    },
+    "instagram": {
+      "followersEnd": 1350,
+      "adSpend": 230,
+      "storyCount": 22,
+      "postCount": 11,
+      "storyViews": 22000,
+      "postViews": 33000,
+      "pageVisits": 1100
+    },
+    "tiktok": {
+      "followersEnd": 580,
+      "adSpend": 60,
+      "postCount": 7,
+      "postViews": 12000,
+      "profileViews": 350
+    },
+    "newsletter": {
+      "subscribers": 380,
+      "emailsSent": 7
+    }
+  }
+]

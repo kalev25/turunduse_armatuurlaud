@@ -4,7 +4,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler"); // Ajastatud 
 const { defineSecret } = require("firebase-functions/params"); // Secretite jaoks
 const admin = require("firebase-admin");
 const { BetaAnalyticsDataClient } = require("@google-analytics/data");
-const { GoogleAuth } = require("google-auth-library");
+const { GoogleAuth, OAuth2Client } = require("google-auth-library");
 
 // Initsialiseeri Firebase Admin SDK
 admin.initializeApp();
@@ -27,6 +27,8 @@ const GOOGLE_BUSINESS_PROFILE_CLIENT_ID = "812777264860-eq3qrf3stpnv2jqml1aqekff
 const DASHBOARD_URL = "https://turundus-deb6d.web.app";
 const META_OAUTH_CALLBACK_URL = `${DASHBOARD_URL}/`;
 const TIKTOK_OAUTH_CALLBACK_URL = "https://us-central1-turundus-deb6d.cloudfunctions.net/completeTikTokOAuth";
+const YOUTUBE_OAUTH_CALLBACK_URL = "https://us-central1-turundus-deb6d.cloudfunctions.net/completeYouTubeOAuth";
+const YOUTUBE_CHANNEL_DISPLAY_NAME = "Ilukliinik NOOR";
 const META_AUTH_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
@@ -34,6 +36,10 @@ const META_AUTH_SCOPES = [
   "instagram_basic",
   "instagram_manage_insights",
   "business_management",
+];
+const YOUTUBE_AUTH_SCOPES = [
+  "https://www.googleapis.com/auth/yt-analytics.readonly",
+  "https://www.googleapis.com/auth/youtube.readonly",
 ];
 const INSTAGRAM_STORIES_COLLECTION = "instagramStories";
 
@@ -685,6 +691,207 @@ function buildMediaPerformancePayload(docs, startDate, endDate) {
         granularity: "day",
         points: Array.from(spotifyTimelineByDate.entries()).map(([label, value]) => ({ label, value })),
       },
+    },
+  };
+}
+
+/**
+ * Returns the Firestore doc used for persisted YouTube OAuth state.
+ * @return {FirebaseFirestore.DocumentReference}
+ */
+function getYouTubeIntegrationDoc() {
+  return db.collection("systemIntegrations").doc("youtube");
+}
+
+/**
+ * Reads persisted YouTube OAuth state from Firestore.
+ * @return {Promise<Object|null>}
+ */
+async function getStoredYouTubeIntegration() {
+  const snapshot = await getYouTubeIntegrationDoc().get();
+  return snapshot.exists ? snapshot.data() : null;
+}
+
+/**
+ * Stores YouTube OAuth state in Firestore.
+ * @param {Object} payload
+ * @return {Promise<void>}
+ */
+async function saveStoredYouTubeIntegration(payload) {
+  await getYouTubeIntegrationDoc().set({
+    ...payload,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }, { merge: true });
+}
+
+/**
+ * Builds an OAuth2 client for YouTube APIs.
+ * @return {OAuth2Client}
+ */
+function buildYouTubeOAuthClient() {
+  return new OAuth2Client(
+    GOOGLE_BUSINESS_PROFILE_CLIENT_ID,
+    GBP_CLIENT_SECRET.value(),
+    YOUTUBE_OAUTH_CALLBACK_URL,
+  );
+}
+
+/**
+ * Gets an access token for YouTube API calls.
+ * @return {Promise<string|null>}
+ */
+async function getYouTubeAccessToken() {
+  const storedIntegration = await getStoredYouTubeIntegration();
+  if (!storedIntegration || !storedIntegration.refreshToken) {
+    return null;
+  }
+
+  const oauthClient = buildYouTubeOAuthClient();
+  oauthClient.setCredentials({
+    refresh_token: storedIntegration.refreshToken,
+  });
+  const accessToken = await oauthClient.getAccessToken();
+  return accessToken && accessToken.token ? accessToken.token : null;
+}
+
+/**
+ * Performs an authenticated YouTube API request.
+ * @param {string} url
+ * @param {string} accessToken
+ * @return {Promise<object>}
+ */
+async function fetchYouTubeApi(url, accessToken) {
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  const payload = await response.json();
+
+  if (!response.ok || payload.error) {
+    throw new Error(
+      payload &&
+      payload.error &&
+      payload.error.message ?
+        payload.error.message :
+        "YouTube API request failed.",
+    );
+  }
+
+  return payload;
+}
+
+/**
+ * Fetches metadata for YouTube video IDs.
+ * @param {Array<string>} videoIds
+ * @param {string} accessToken
+ * @return {Promise<Map<string, object>>}
+ */
+async function fetchYouTubeVideoMetadata(videoIds, accessToken) {
+  const metadataById = new Map();
+
+  for (let index = 0; index < videoIds.length; index += 50) {
+    const chunk = videoIds.slice(index, index + 50);
+    if (chunk.length === 0) {
+      continue;
+    }
+
+    const url = new URL("https://youtube.googleapis.com/youtube/v3/videos");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("id", chunk.join(","));
+    url.searchParams.set("maxResults", "50");
+    const payload = await fetchYouTubeApi(url.toString(), accessToken);
+
+    (payload.items || []).forEach((item) => {
+      metadataById.set(item.id, {
+        title: item.snippet && item.snippet.title ? item.snippet.title : item.id,
+        url: `https://www.youtube.com/watch?v=${item.id}`,
+      });
+    });
+  }
+
+  return metadataById;
+}
+
+/**
+ * Fetches YouTube Analytics top videos and daily total views.
+ * @param {string} startDate
+ * @param {string} endDate
+ * @return {Promise<object|null>}
+ */
+async function fetchYouTubePerformanceRange(startDate, endDate) {
+  const accessToken = await getYouTubeAccessToken();
+  if (!accessToken) {
+    return null;
+  }
+
+  const topVideosUrl = new URL("https://youtubeanalytics.googleapis.com/v2/reports");
+  topVideosUrl.searchParams.set("ids", "channel==MINE");
+  topVideosUrl.searchParams.set("startDate", startDate);
+  topVideosUrl.searchParams.set("endDate", endDate);
+  topVideosUrl.searchParams.set("metrics", "views");
+  topVideosUrl.searchParams.set("dimensions", "video");
+  topVideosUrl.searchParams.set("sort", "-views");
+  topVideosUrl.searchParams.set("maxResults", "200");
+
+  const timelineUrl = new URL("https://youtubeanalytics.googleapis.com/v2/reports");
+  timelineUrl.searchParams.set("ids", "channel==MINE");
+  timelineUrl.searchParams.set("startDate", startDate);
+  timelineUrl.searchParams.set("endDate", endDate);
+  timelineUrl.searchParams.set("metrics", "views");
+  timelineUrl.searchParams.set("dimensions", "day");
+  timelineUrl.searchParams.set("sort", "day");
+
+  const channelUrl = new URL("https://youtube.googleapis.com/youtube/v3/channels");
+  channelUrl.searchParams.set("part", "snippet");
+  channelUrl.searchParams.set("mine", "true");
+  channelUrl.searchParams.set("maxResults", "1");
+
+  const [topVideosPayload, timelinePayload, channelPayload] = await Promise.all([
+    fetchYouTubeApi(topVideosUrl.toString(), accessToken),
+    fetchYouTubeApi(timelineUrl.toString(), accessToken),
+    fetchYouTubeApi(channelUrl.toString(), accessToken),
+  ]);
+
+  const videoRows = topVideosPayload.rows || [];
+  const videoIds = videoRows.map((row) => row[0]).filter(Boolean);
+  const metadataById = await fetchYouTubeVideoMetadata(videoIds, accessToken);
+  const videos = videoRows.map((row) => {
+    const videoId = row[0];
+    const metadata = metadataById.get(videoId) || {};
+    return {
+      id: videoId,
+      title: metadata.title || videoId,
+      url: metadata.url || `https://www.youtube.com/watch?v=${videoId}`,
+      views: Number(row[1]) || 0,
+    };
+  });
+
+  const emptyTimeline = buildEmptyDailyValueTimeline(startDate, endDate);
+  const viewsByDate = new Map();
+  emptyTimeline.points.forEach((point) => viewsByDate.set(point.label, 0));
+  (timelinePayload.rows || []).forEach((row) => {
+    viewsByDate.set(row[0], Number(row[1]) || 0);
+  });
+
+  const channel = channelPayload.items && channelPayload.items[0] ?
+    {
+      id: channelPayload.items[0].id,
+      title: channelPayload.items[0].snippet && channelPayload.items[0].snippet.title ?
+        channelPayload.items[0].snippet.title :
+        YOUTUBE_CHANNEL_DISPLAY_NAME,
+    } :
+    {
+      id: "",
+      title: YOUTUBE_CHANNEL_DISPLAY_NAME,
+    };
+
+  return {
+    channel,
+    videos,
+    timeline: {
+      granularity: "day",
+      points: Array.from(viewsByDate.entries()).map(([label, value]) => ({ label, value })),
     },
   };
 }
@@ -2932,6 +3139,81 @@ exports.completeMetaOAuth = onRequest(
   },
 );
 
+exports.startYouTubeOAuth = onRequest(
+  {
+    secrets: [GBP_CLIENT_SECRET],
+    serviceAccount: FUNCTION_SERVICE_ACCOUNT,
+  },
+  async (req, res) => {
+    try {
+      const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+      authUrl.searchParams.set("client_id", GOOGLE_BUSINESS_PROFILE_CLIENT_ID);
+      authUrl.searchParams.set("redirect_uri", YOUTUBE_OAUTH_CALLBACK_URL);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", YOUTUBE_AUTH_SCOPES.join(" "));
+      authUrl.searchParams.set("access_type", "offline");
+      authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("include_granted_scopes", "true");
+      return res.redirect(authUrl.toString());
+    } catch (error) {
+      console.error("Error starting YouTube OAuth:", error);
+      const redirectUrl = new URL(DASHBOARD_URL);
+      redirectUrl.searchParams.set("youtubeAuth", "error");
+      redirectUrl.searchParams.set("message", error.message);
+      return res.redirect(redirectUrl.toString());
+    }
+  },
+);
+
+exports.completeYouTubeOAuth = onRequest(
+  {
+    secrets: [GBP_CLIENT_SECRET],
+    serviceAccount: FUNCTION_SERVICE_ACCOUNT,
+  },
+  async (req, res) => {
+    const redirectUrl = new URL(DASHBOARD_URL);
+
+    try {
+      const { code, error, error_description: errorDescription } = req.query;
+
+      if (error) {
+        throw new Error(errorDescription || String(error));
+      }
+
+      if (!code) {
+        throw new Error("YouTube callback did not include an authorization code.");
+      }
+
+      const oauthClient = buildYouTubeOAuthClient();
+      const tokenResponse = await oauthClient.getToken(String(code));
+      const tokens = tokenResponse.tokens || {};
+
+      if (!tokens.refresh_token && !tokens.access_token) {
+        throw new Error("YouTube token exchange did not return usable tokens.");
+      }
+
+      const existingIntegration = await getStoredYouTubeIntegration();
+      await saveStoredYouTubeIntegration({
+        accessToken: tokens.access_token || "",
+        refreshToken: tokens.refresh_token ||
+          (existingIntegration && existingIntegration.refreshToken ? existingIntegration.refreshToken : ""),
+        expiryDate: tokens.expiry_date || null,
+        scope: tokens.scope || YOUTUBE_AUTH_SCOPES.join(" "),
+        tokenType: tokens.token_type || "Bearer",
+      });
+
+      redirectUrl.searchParams.set("youtubeAuth", "success");
+      redirectUrl.searchParams.set("message", "YouTube kanal ühendati edukalt.");
+      return res.redirect(redirectUrl.toString());
+    } catch (error) {
+      console.error("Error completing YouTube OAuth:", error);
+      redirectUrl.searchParams.set("youtubeAuth", "error");
+      redirectUrl.searchParams.set("message", error.message);
+      return res.redirect(redirectUrl.toString());
+    }
+  },
+);
+
 exports.startTikTokOAuth = onRequest(
   {
     serviceAccount: FUNCTION_SERVICE_ACCOUNT,
@@ -3209,6 +3491,7 @@ exports.fetchSmailyRange = onRequest(
 
 exports.fetchMediaPerformanceRange = onRequest(
   {
+    secrets: [GBP_CLIENT_SECRET],
     cors: true,
     serviceAccount: FUNCTION_SERVICE_ACCOUNT,
   },
@@ -3235,8 +3518,20 @@ exports.fetchMediaPerformanceRange = onRequest(
         .orderBy("date", "asc")
         .get();
       const docs = snapshot.docs.map((doc) => doc.data());
+      const payload = buildMediaPerformancePayload(docs, startDate, endDate);
+      const youtubePerformance = await fetchYouTubePerformanceRange(startDate, endDate);
 
-      return res.status(200).json(buildMediaPerformancePayload(docs, startDate, endDate));
+      if (youtubePerformance) {
+        payload.youtube = youtubePerformance;
+      } else {
+        payload.youtube.setupRequired = true;
+        payload.youtube.channel = {
+          id: "",
+          title: YOUTUBE_CHANNEL_DISPLAY_NAME,
+        };
+      }
+
+      return res.status(200).json(payload);
     } catch (error) {
       console.error("Error fetching media performance range data:", error);
       return res.status(500).json({

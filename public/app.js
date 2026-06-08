@@ -47,7 +47,6 @@ const ASSIGN_INSTAGRAM_STORY_OWNER_URL = 'https://us-central1-turundus-deb6d.clo
 const META_AUTH_START_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/startMetaOAuth';
 const META_AUTH_STATUS_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/getMetaAuthStatus';
 const META_AUTH_COMPLETE_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/completeMetaOAuth';
-const TIKTOK_AUTH_START_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/startTikTokOAuth';
 const FOLLOWER_DATA_AVAILABLE_SINCE = '2026-04-08';
 const INSTAGRAM_CONTENT_DATA_AVAILABLE_SINCE = '2026-03-08';
 
@@ -182,16 +181,6 @@ const metaAdsChartAxis = document.getElementById('meta-ads-chart-axis');
 const metaAdsChartTooltip = document.getElementById('meta-ads-chart-tooltip');
 const metaAdsChartSubtitle = document.getElementById('meta-ads-chart-subtitle');
 const metaAdsChartEmpty = document.getElementById('meta-ads-chart-empty');
-
-// TikTok
-const tiktokFollowers = document.getElementById('tiktok-followers');
-const tiktokAdSpend = document.getElementById('tiktok-ad-spend');
-const tiktokPostCount = document.getElementById('tiktok-post-count');
-const tiktokPostViews = document.getElementById('tiktok-post-views');
-const tiktokProfileViews = document.getElementById('tiktok-profile-views');
-const tiktokCostPerFollower = document.getElementById('tiktok-cost-per-follower');
-const tiktokConnectButton = document.getElementById('tiktok-connect-button');
-const tiktokAuthStatus = document.getElementById('tiktok-auth-status');
 
 // Smaily
 const smailyTitleCount = document.getElementById('smaily-title-count');
@@ -565,12 +554,6 @@ function clearMainMetricsWithFallback(fallbackText = 'N/A') {
         metaInstagramBoostSpend,
         metaLinkClicksTotal,
         metaTotalAdSpend,
-        tiktokFollowers,
-        tiktokAdSpend,
-        tiktokPostCount,
-        tiktokPostViews,
-        tiktokProfileViews,
-        tiktokCostPerFollower,
         smailyNewSubscribers,
         smailyCampaignCount,
         googleReviewsPeriodNew,
@@ -838,42 +821,6 @@ function showMetaAuthQueryMessage() {
     }
 
     params.delete('metaAuth');
-    params.delete('message');
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
-    window.history.replaceState({}, '', nextUrl);
-}
-
-function showTikTokAuthQueryMessage() {
-    const params = new URLSearchParams(window.location.search);
-    const authState = params.get('tiktokAuth');
-    const message = params.get('message');
-
-    if (!authState) {
-        if (tiktokAuthStatus) {
-            tiktokAuthStatus.textContent = 'TikTok ühendus ootab TikToki app review sammu.';
-        }
-        return;
-    }
-
-    if (authState === 'success') {
-        setDashboardStatus('TikTok autoriseerimine jõudis dashboardi tagasi.', 'success');
-        if (tiktokAuthStatus) {
-            tiktokAuthStatus.textContent = 'TikTok autoriseerimise callback töötab.';
-        }
-    } else if (authState === 'demo') {
-        setDashboardStatus(`TikTok demo flow valmis${message ? `: ${message}` : '.'}`, 'success');
-        if (tiktokAuthStatus) {
-            tiktokAuthStatus.textContent = 'TikTok demo flow valmis review video jaoks.';
-        }
-    } else if (authState === 'error') {
-        setDashboardStatus(`TikTok ühendus ebaõnnestus${message ? `: ${message}` : '.'}`, 'error');
-        if (tiktokAuthStatus) {
-            tiktokAuthStatus.textContent = 'TikTok ühendus vajab uuesti proovimist.';
-        }
-    }
-
-    params.delete('tiktokAuth');
     params.delete('message');
     const nextQuery = params.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`;
@@ -2183,19 +2130,12 @@ async function fetchAndDisplayMarketingData(selectedFilter = {}) {
                 acc.instagram.totalInteractions += item.instagram?.totalInteractions || 0;
                 acc.instagram.newFollowers += item.instagram?.newFollowers || 0;
 
-                // Liida TikTok
-                acc.tiktok.adSpend += item.tiktok?.adSpend || 0;
-                acc.tiktok.postCount += item.tiktok?.postCount || 0;
-                acc.tiktok.postViews += item.tiktok?.postViews || 0;
-                acc.tiktok.profileViews += item.tiktok?.profileViews || 0;
-
                 // Liida Newsletter
                 return acc;
             }, {
                 google: { websiteVisitsTotal: 0, websiteVisitsPaid: 0, websiteVisitsOrganic: 0, reviewsRating: 0, totalReviews: 0 },
                 facebook: { followersEnd: 0, adSpend: 0, storyCount: 0, postCount: 0, storyViews: 0, postViews: 0, pageVisits: 0, postEngagements: 0 },
                 instagram: { followersEnd: 0, adSpend: 0, storyCount: 0, postCount: 0, storyViews: 0, postViews: 0, pageVisits: 0, totalInteractions: 0, newFollowers: 0 },
-                tiktok: { followersEnd: 0, adSpend: 0, postCount: 0, postViews: 0, profileViews: 0 },
                 newsletter: { subscribers: 0 },
                 date: 'Aggregated' // Märgime, et see on agregeeritud
             });
@@ -2205,7 +2145,6 @@ async function fetchAndDisplayMarketingData(selectedFilter = {}) {
                 const lastItem = filteredData[filteredData.length - 1];
                 aggregatedData.facebook.followersEnd = lastItem.facebook?.followersEnd || 0;
                 aggregatedData.instagram.followersEnd = lastItem.instagram?.followersEnd || 0;
-                aggregatedData.tiktok.followersEnd = lastItem.tiktok?.followersEnd || 0;
                 aggregatedData.newsletter.subscribers = lastItem.newsletter?.subscribers || 0;
                 aggregatedData.google.reviewsRating = lastItem.google?.reviewsRating || 0; // Viimase kuu hinne
             }
@@ -2223,7 +2162,6 @@ async function fetchAndDisplayMarketingData(selectedFilter = {}) {
                 previousMonthData = {
                     facebook: { followersEnd: 0 },
                     instagram: { followersEnd: 0 },
-                    tiktok: { followersEnd: 0 },
                     google: { totalReviews: 0 }
                 };
             }
@@ -2256,15 +2194,6 @@ async function fetchAndDisplayMarketingData(selectedFilter = {}) {
         metaInstagramBoostSpend.textContent = 'Andmed puuduvad';
         metaLinkClicksTotal.textContent = 'Andmed puuduvad';
         metaTotalAdSpend.textContent = 'Andmed puuduvad';
-
-        // --- TikTok ---
-        const tiktokCurrFollowers = currentMonthData.tiktok?.followersEnd ?? null;
-        setTextValue(tiktokFollowers, getFollowerSummaryDisplay(allMarketingData, 'tiktok', selectedFilter, tiktokCurrFollowers));
-        setTextValue(tiktokAdSpend, currentMonthData.tiktok?.adSpend);
-        setTextValue(tiktokPostCount, currentMonthData.tiktok?.postCount);
-        setTextValue(tiktokPostViews, currentMonthData.tiktok?.postViews);
-        setTextValue(tiktokProfileViews, currentMonthData.tiktok?.profileViews);
-        tiktokCostPerFollower.textContent = 'N/A';
 
         // --- Smaily ---
         setSmailyLoadingState();
@@ -2437,15 +2366,6 @@ if (smailyCampaignsToggle) {
     });
 }
 
-if (tiktokConnectButton) {
-    tiktokConnectButton.addEventListener('click', () => {
-        if (tiktokAuthStatus) {
-            tiktokAuthStatus.textContent = 'TikTok review demo: callback URL on seadistatud ja live OAuth avaneb pärast app approvalit.';
-        }
-        setDashboardStatus('TikTok demo flow valmis review video jaoks. Live ühendus aktiveerub pärast TikTok app approvalit.', 'success');
-    });
-}
-
 Object.entries(GOOGLE_BUSINESS_METRIC_CONFIG).forEach(([metricKey, config]) => {
     if (config.toggle) {
         config.toggle.addEventListener('click', () => {
@@ -2456,7 +2376,6 @@ Object.entries(GOOGLE_BUSINESS_METRIC_CONFIG).forEach(([metricKey, config]) => {
 });
 
 showMetaAuthQueryMessage();
-showTikTokAuthQueryMessage();
 processMetaOAuthCallback().then(() => loadMetaAuthStatus());
 completeGoogleRedirectLogin();
 

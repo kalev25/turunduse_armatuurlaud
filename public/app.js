@@ -1,7 +1,7 @@
 // Impordime vajalikud funktsioonid Firebase SDK-st otse CDN-ist
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, getDocs, query, orderBy, limitToLast } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 // ^^^^^ KONTROLLI KÕIKI VERSIOONE! Need peavad olema kõik sama versiooninumbriga (nt 10.12.0)!
 
@@ -2085,9 +2085,14 @@ async function logoutUser() {
 // Funktsioon Google'iga sisselogimiseks
 async function loginWithGoogle() {
     authError.textContent = ''; // Puhasta veateade
+    googleLoginButton.disabled = true;
+    googleLoginButton.textContent = 'Avan Google sisselogimist...';
     const provider = new GoogleAuthProvider();
     try {
-        await signInWithRedirect(auth, provider);
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        await signInWithPopup(auth, provider);
     } catch (error) {
         console.error('Google sisselogimisviga:', error.message);
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/operation-not-supported-in-this-environment') {
@@ -2100,8 +2105,13 @@ async function loginWithGoogle() {
             errorMessage = 'Sisselogimise aken suleti.';
         } else if (error.code === 'auth/cancelled-popup-request') {
              errorMessage = 'Eelmine sisselogimise aken on juba avatud.';
+        } else if (error.code === 'auth/unauthorized-domain') {
+            errorMessage = 'See domeen pole Firebase Auth seadetes lubatud.';
         }
         authError.textContent = errorMessage;
+    } finally {
+        googleLoginButton.disabled = false;
+        googleLoginButton.textContent = 'Logi sisse (Google)';
     }
 }
 
@@ -2116,6 +2126,8 @@ async function completeGoogleRedirectLogin() {
         authError.textContent = 'Google sisselogimine ebaõnnestus.';
     }
 }
+
+completeGoogleRedirectLogin();
 
 // Funktsioon andmete lugemiseks Firestore'ist ja kuvamiseks
 async function fetchAndDisplayMarketingData(selectedFilter = {}) {

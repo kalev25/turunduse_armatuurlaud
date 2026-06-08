@@ -1333,6 +1333,13 @@ function renderMediaPerformance() {
     const spotifyItems = latestMediaPerformance?.spotify?.tracks || [];
     const topYoutubeVideo = youtubeItems[0];
     const topSpotifyTrack = spotifyItems[0];
+    const youtubeChannelTitle = latestMediaPerformance?.youtube?.channel?.title;
+
+    if (youtubeAuthStatus) {
+        youtubeAuthStatus.textContent = latestMediaPerformance?.youtube?.setupRequired ?
+            'YouTube kanal vajab ühendamist.' :
+            `YouTube kanal: ${youtubeChannelTitle || 'ühendatud kanal'}`;
+    }
 
     if (youtubeTopTitle) {
         youtubeTopTitle.textContent = topYoutubeVideo?.title || 'Andmeid pole';

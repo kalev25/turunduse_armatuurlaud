@@ -3152,7 +3152,7 @@ exports.startYouTubeOAuth = onRequest(
       authUrl.searchParams.set("response_type", "code");
       authUrl.searchParams.set("scope", YOUTUBE_AUTH_SCOPES.join(" "));
       authUrl.searchParams.set("access_type", "offline");
-      authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("prompt", "consent select_account");
       authUrl.searchParams.set("include_granted_scopes", "true");
       return res.redirect(authUrl.toString());
     } catch (error) {

@@ -48,7 +48,6 @@ const ASSIGN_INSTAGRAM_STORY_OWNER_URL = 'https://us-central1-turundus-deb6d.clo
 const META_AUTH_START_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/startMetaOAuth';
 const META_AUTH_STATUS_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/getMetaAuthStatus';
 const META_AUTH_COMPLETE_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/completeMetaOAuth';
-const YOUTUBE_AUTH_START_URL = 'https://us-central1-turundus-deb6d.cloudfunctions.net/startYouTubeOAuth';
 const FOLLOWER_DATA_AVAILABLE_SINCE = '2026-04-08';
 const INSTAGRAM_CONTENT_DATA_AVAILABLE_SINCE = '2026-03-08';
 
@@ -188,7 +187,6 @@ const metaAdsChartTooltip = document.getElementById('meta-ads-chart-tooltip');
 const metaAdsChartSubtitle = document.getElementById('meta-ads-chart-subtitle');
 const metaAdsChartEmpty = document.getElementById('meta-ads-chart-empty');
 
-const youtubeConnectButton = document.getElementById('youtube-connect-button');
 const youtubeAuthStatus = document.getElementById('youtube-auth-status');
 const youtubeTopToggle = document.getElementById('youtube-top-toggle');
 const youtubeTopTitle = document.getElementById('youtube-top-title');
@@ -2629,15 +2627,6 @@ if (mediaChartSpotifyToggle) {
     mediaChartSpotifyToggle.addEventListener('click', () => {
         selectedMediaChartPlatform = 'spotify';
         renderMediaPerformanceChart();
-    });
-}
-
-if (youtubeConnectButton) {
-    youtubeConnectButton.addEventListener('click', () => {
-        if (youtubeAuthStatus) {
-            youtubeAuthStatus.textContent = 'Avan Google YouTube ühendust...';
-        }
-        window.location.href = YOUTUBE_AUTH_START_URL;
     });
 }
 

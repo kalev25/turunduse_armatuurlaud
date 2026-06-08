@@ -655,31 +655,6 @@
         .collapsible-list[hidden] {
             display: none;
         }
-        .chart-switch {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px;
-            border-radius: 999px;
-            background: rgba(21, 49, 39, 0.06);
-            border: 1px solid rgba(21, 49, 39, 0.08);
-        }
-        .chart-switch button {
-            border: none;
-            border-radius: 999px;
-            padding: 7px 11px;
-            background: transparent;
-            color: var(--text-soft);
-            font: inherit;
-            font-size: 0.82rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
-        .chart-switch button.is-active {
-            background: var(--surface-strong);
-            color: var(--brand-dark);
-            box-shadow: 0 8px 18px rgba(24, 45, 33, 0.1);
-        }
         .blog-status {
             margin-top: 10px;
             font-size: 0.84rem;
@@ -1292,7 +1267,7 @@
             </div>
 
             <div id="media-performance-card" class="data-card wide-card">
-                <h3>YouTube & Spotify</h3>
+                <h3>YouTube</h3>
                 <div class="platform-connect-row">
                     <span id="youtube-auth-status" class="platform-connect-status">YouTube kanal: Ilu ei anna häbeneda!</span>
                 </div>
@@ -1301,24 +1276,15 @@
                     <span><span id="youtube-top-title">Laeb andmeid...</span><span id="youtube-top-views"></span><span id="youtube-top-arrow" class="metric-toggle-arrow">→</span></span>
                 </button>
                 <div id="youtube-videos-list" class="insight-list collapsible-list" hidden></div>
-                <button id="spotify-top-toggle" class="metric-toggle-row" type="button" aria-expanded="false">
-                    <strong>Spotify top lugu:</strong>
-                    <span><span id="spotify-top-title">Laeb andmeid...</span><span id="spotify-top-listens"></span><span id="spotify-top-arrow" class="metric-toggle-arrow">→</span></span>
-                </button>
-                <div id="spotify-tracks-list" class="insight-list collapsible-list" hidden></div>
                 <div class="ga-chart-panel">
                     <div class="ga-chart-header">
                         <div>
-                            <h4 id="media-chart-title">YouTube vaatamised ajas</h4>
+                            <h4>YouTube vaatamised ajas</h4>
                             <p id="media-chart-subtitle" class="ga-chart-subtitle">Valitud perioodi vaatamised päevade lõikes</p>
-                        </div>
-                        <div class="chart-switch" role="group" aria-label="Vali meediakanali graafik">
-                            <button id="media-chart-youtube-toggle" class="is-active" type="button">YouTube</button>
-                            <button id="media-chart-spotify-toggle" type="button">Spotify</button>
                         </div>
                     </div>
                     <div class="ga-chart-shell">
-                        <svg id="media-performance-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="YouTube ja Spotify graafik"></svg>
+                        <svg id="media-performance-chart" class="ga-chart-svg" viewBox="0 0 640 220" preserveAspectRatio="none" aria-label="YouTube vaatamiste graafik"></svg>
                         <div id="media-performance-chart-tooltip" class="ga-chart-tooltip"></div>
                     </div>
                     <div id="media-performance-chart-axis" class="ga-chart-axis"></div>
@@ -1441,6 +1407,6 @@
     </div>
     </div>
 
-    <script type="module" src="/app.js?v=20260608-youtube-connected"></script>
+    <script type="module" src="/app.js?v=20260608-youtube-only"></script>
 </body>
 </html>

@@ -630,7 +630,7 @@ function addMediaItemMetric(aggregateMap, item, metricKey, fallbackPrefix) {
 }
 
 /**
- * Builds YouTube and Spotify performance payload from Firestore docs.
+ * Builds YouTube performance payload from Firestore docs.
  * @param {Array<object>} docs
  * @param {string} startDate
  * @param {string} endDate
@@ -638,39 +638,26 @@ function addMediaItemMetric(aggregateMap, item, metricKey, fallbackPrefix) {
  */
 function buildMediaPerformancePayload(docs, startDate, endDate) {
   const youtubeItems = new Map();
-  const spotifyItems = new Map();
   const youtubeTimelineByDate = new Map();
-  const spotifyTimelineByDate = new Map();
 
   buildEmptyDailyValueTimeline(startDate, endDate).points.forEach((point) => {
     youtubeTimelineByDate.set(point.label, 0);
-    spotifyTimelineByDate.set(point.label, 0);
   });
 
   docs.forEach((doc) => {
     const date = doc.date;
     const youtube = doc.youtube || {};
-    const spotify = doc.spotify || {};
     const youtubeVideos = youtube.videos || [];
-    const spotifyTracks = spotify.tracks || [];
     const youtubeTotal = youtube.totalViews != null ?
       youtube.totalViews :
       youtubeVideos.reduce((sum, item) => {
         const value = item.views != null ? item.views : item.value;
         return sum + (Number(value || 0) || 0);
       }, 0);
-    const spotifyTotal = spotify.totalListens != null ?
-      spotify.totalListens :
-      spotifyTracks.reduce((sum, item) => {
-        const value = item.listens != null ? item.listens : item.value;
-        return sum + (Number(value || 0) || 0);
-      }, 0);
 
     youtubeTimelineByDate.set(date, (youtubeTimelineByDate.get(date) || 0) + youtubeTotal);
-    spotifyTimelineByDate.set(date, (spotifyTimelineByDate.get(date) || 0) + spotifyTotal);
 
     youtubeVideos.forEach((item) => addMediaItemMetric(youtubeItems, item, "views", "youtube"));
-    spotifyTracks.forEach((item) => addMediaItemMetric(spotifyItems, item, "listens", "spotify"));
   });
 
   const sortByMetric = (metricKey) => (a, b) => (b[metricKey] || 0) - (a[metricKey] || 0);
@@ -683,13 +670,6 @@ function buildMediaPerformancePayload(docs, startDate, endDate) {
       timeline: {
         granularity: "day",
         points: Array.from(youtubeTimelineByDate.entries()).map(([label, value]) => ({ label, value })),
-      },
-    },
-    spotify: {
-      tracks: Array.from(spotifyItems.values()).sort(sortByMetric("listens")),
-      timeline: {
-        granularity: "day",
-        points: Array.from(spotifyTimelineByDate.entries()).map(([label, value]) => ({ label, value })),
       },
     },
   };
